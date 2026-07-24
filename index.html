@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-page="home" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C Visual Lab — Custom Data Types & OOP in C</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout no-sidebar">
+  <main id="main-content">
+    <div class="hero">
+      <h1>Custom Data Types &amp; Object-Oriented Programming in C</h1>
+      <p class="lede">An interactive lab for embedded engineers. Visualize memory, simulate bugs, explore design patterns — all in the browser, no setup required.</p>
+      <div class="btn-row" style="margin-top:20px">
+        <a class="btn btn-primary" href="concepts.html" data-continue-btn><span data-continue-label>Start learning</span></a>
+        <a class="btn" href="quiz.html">Jump to quiz</a>
+      </div>
+    </div>
+
+    <hr style="margin: 32px 0;">
+
+    <h2>Progress dashboard</h2>
+    <div class="grid cols-3" style="margin-bottom:24px">
+      <div class="card stat-card"><div class="stat-label">Completion</div><div class="stat-value" data-stat-progress>0%</div></div>
+      <div class="card stat-card"><div class="stat-label">Lessons done</div><div class="stat-value" data-stat-done>0 / 8</div></div>
+      <div class="card stat-card"><div class="stat-label">Best quiz score</div><div class="stat-value" data-stat-quiz>—</div></div>
+    </div>
+    <div class="sidebar-progress" style="max-width:480px;margin-bottom:32px">
+      <div class="bar-label"><span>Overall progress</span><span data-stat-progress>0%</span></div>
+      <div class="progress-track"><div class="progress-fill" data-progress-fill></div></div>
+    </div>
+
+    <h2>Learning roadmap</h2>
+    <div class="roadmap">
+      <a href="concepts.html" class="roadmap-card" data-roadmap-page="concepts">
+        <div class="stage-num">1</div>
+        <div><h3>Why custom types?</h3><p>Data grouping, state tracking, and the limits of raw types.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="custom-types.html" class="roadmap-card" data-roadmap-page="custom-types">
+        <div class="stage-num">2</div>
+        <div><h3>Custom types deep-dive</h3><p>typedef, enum, struct, union — and the tagged-union pattern.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="structs-memory.html" class="roadmap-card" data-roadmap-page="structs-memory">
+        <div class="stage-num">3</div>
+        <div><h3>Struct memory lab</h3><p>Alignment, padding, packed structs, and six memory bugs.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="oops-in-c.html" class="roadmap-card" data-roadmap-page="oops-in-c">
+        <div class="stage-num">4–5</div>
+        <div><h3>OOP in C</h3><p>Objects, methods, self, encapsulation, and opaque handles.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="polymorphism.html" class="roadmap-card" data-roadmap-page="polymorphism">
+        <div class="stage-num">6–7</div>
+        <div><h3>Polymorphism</h3><p>Function pointers, ops tables, callbacks, and composition.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="pitfalls.html" class="roadmap-card" data-roadmap-page="pitfalls">
+        <div class="stage-num">8</div>
+        <div><h3>Pitfalls</h3><p>20 interactive warnings: the things C will not protect you from.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="playground.html" class="roadmap-card" data-roadmap-page="playground">
+        <div class="stage-num">9</div>
+        <div><h3>Design playground</h3><p>Assemble your own design and study the generated C listing.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+      <a href="quiz.html" class="roadmap-card" data-roadmap-page="quiz">
+        <div class="stage-num">10</div>
+        <div><h3>Final quiz</h3><p>14 shuffled questions across every module.</p></div>
+        <span class="done-check" style="display:none">✓</span>
+      </a>
+    </div>
+  </main>
+</div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p><div class="foot-links"><a href="https://github.com/sssskyds/c-visual-lab">GitHub</a></div></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+</body>
+</html>

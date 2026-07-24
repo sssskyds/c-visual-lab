@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-page="oops-in-c" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OOP in C — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stages 4–5</div><h1>OOP Thinking in C</h1>
+    <p class="lede">Objects, methods, self, encapsulation, opaque handles, and clean lifecycle management — without a class keyword in sight.</p></div>
+  <section class="block" id="objects">
+    <h2><span class="sec-num">4.1</span> struct = object; functions = methods</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>led.h</div><pre><code>typedef struct LedState LedState;
+
+LedState *Led_Create(uint8_t id);
+void      Led_SetBrightness(LedState *self, uint8_t brightness);
+void      Led_Toggle(LedState *self);
+void      Led_Destroy(LedState *self);</code></pre></div>
+  </section>
+  <section class="block" id="opaque">
+    <h2><span class="sec-num">5.1</span> Opaque handles</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>led.c — struct defined only here</div><pre><code>struct LedState {
+    uint8_t  id;
+    uint8_t  brightness;
+    bool     on;
+    uint32_t color;
+};
+
+LedState *Led_Create(uint8_t id) {
+    LedState *s = malloc(sizeof *s);
+    if (!s) return NULL;
+    *s = (LedState){ .id=id, .brightness=100, .on=false };
+    return s;
+}</code></pre></div>
+    <div class="callout good"><span class="co-icon">✔</span><p>Callers only see the pointer — internals are invisible. Changing the struct never breaks callers as long as the API stays the same.</p></div>
+  </section>
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/visualizer.js"></script>
+</body></html>

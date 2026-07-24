@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-page="concepts" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Custom Types? — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stage 1</div><h1>Why Custom Data Types?</h1>
+    <p class="lede">Raw integers and arrays can represent anything — but they tell you nothing about intent. Custom types add meaning, structure, and safety.</p></div>
+  <section class="block" id="grouping">
+    <h2><span class="sec-num">1.1</span> The grouping problem</h2>
+    <div class="code-card bad"><div class="code-title"><span class="dot" style="background:#f4756c"></span>before — scattered raw values</div><pre><code>uint8_t  led_id     = 1;
+bool     led_on     = false;
+uint8_t  led_bright = 80;
+uint32_t led_color  = 0xFF8C00;
+/* Nothing stops you from accidentally passing
+   led_color where led_id is expected. */</code></pre></div>
+    <div class="code-card good"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>after — one named type</div><pre><code>typedef struct {
+    uint8_t  id;
+    bool     on;
+    uint8_t  brightness;
+    uint32_t color;
+} LedState;
+
+LedState led = { .id=1, .on=false,
+                  .brightness=80, .color=0xFF8C00 };</code></pre></div>
+    <div id="grouping-sim"></div>
+  </section>
+  <section class="block" id="enum-state">
+    <h2><span class="sec-num">1.2</span> Enum: named states</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>sensor_state.c</div><pre><code>typedef enum {
+    SENSOR_IDLE,
+    SENSOR_MEASURING,
+    SENSOR_DATA_READY,
+    SENSOR_ERROR
+} SensorState;
+
+SensorState state = SENSOR_IDLE;</code></pre></div>
+    <div id="enum-sim"></div>
+  </section>
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/visualizer.js"></script>
+</body></html>

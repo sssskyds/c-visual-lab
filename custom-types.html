@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-page="custom-types" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Types Deep-Dive — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stage 2</div><h1>Custom Types Deep-Dive</h1>
+    <p class="lede">typedef, enum, struct, union — four tools and the tagged-union pattern used in real embedded firmware.</p></div>
+  <section class="block" id="typedef">
+    <h2><span class="sec-num">2.1</span> typedef — naming existing types</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>typedef.c</div><pre><code>typedef uint32_t Timestamp_ms;
+typedef uint8_t  NodeId;
+
+Timestamp_ms now   = 1000u;
+NodeId       sensor = 3u;</code></pre></div>
+  </section>
+  <section class="block" id="enum">
+    <h2><span class="sec-num">2.2</span> enum — named integer constants</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>enum.c</div><pre><code>typedef enum {
+    DIR_NORTH = 0,
+    DIR_EAST,
+    DIR_SOUTH,
+    DIR_WEST
+} Direction;</code></pre></div>
+  </section>
+  <section class="block" id="struct">
+    <h2><span class="sec-num">2.3</span> struct — named composite type</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>struct.c</div><pre><code>typedef struct {
+    float    x, y, z;
+    uint32_t timestamp;
+} AccelSample;
+
+AccelSample s = { .x=0.1f, .y=9.8f, .z=0.0f, .timestamp=1234 };</code></pre></div>
+  </section>
+  <section class="block" id="union">
+    <h2><span class="sec-num">2.4</span> union &amp; tagged union</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#f2b345"></span>tagged-union.c</div><pre><code>typedef enum { MSG_TEMP, MSG_ACCEL, MSG_STATUS } MsgType;
+typedef struct {
+    MsgType type;
+    union {
+        float    temperature;
+        AccelSample accel;
+        uint8_t  status_code;
+    } data;
+} SensorMsg;</code></pre></div>
+  </section>
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/visualizer.js"></script>
+</body></html>
