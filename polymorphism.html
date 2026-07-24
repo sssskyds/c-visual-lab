@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" data-page="polymorphism" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interfaces & Polymorphism — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+  <main id="main-content">
+    <div class="page-head">
+      <div class="kicker">Stages 6–7</div>
+      <h1>Interfaces, Function Pointers &amp; Polymorphism</h1>
+      <p class="lede">One generic call, many concrete behaviors — built by hand with function pointers.</p>
+    </div>
+
+    <section class="block" id="fn-pointers">
+      <h2><span class="sec-num">6.1</span> Function pointers, slowly</h2>
+      <div class="code-card"><div class="code-title"><span class="dot" style="background:#f4756c"></span>fn-pointer.c</div><pre><code>typedef void (*SetStateFn)(void *context, bool on);
+/* │         │ └─ parameters it accepts
+   │         └─ "pointer to function"
+   └─ return type */
+
+SetStateFn fn = led_set;  /* store the ADDRESS */
+fn(led_ctx, true);         /* call through it   */</code></pre></div>
+      <ul>
+        <li>A function pointer stores <strong>the address of a function</strong>— code, not data.</li>
+        <li>Assigning a different function <strong>selects behavior at runtime</strong>.</li>
+        <li><code>context</code> points at the specific object the behavior operates on — it plays the role of <code>self</code>.</li>
+      </ul>
+      <p>Pointer to data answers “<em>which object?</em>”. Pointer to function answers “<em>which behavior?</em>”. An interface bundles both.</p>
+    </section>
+
+    <section class="block" id="ops-table">
+      <h2><span class="sec-num">6.2</span> A generic interface: the ops table</h2>
+      <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>device.h</div><pre><code>typedef struct {
+    void (*init)(void *context);
+    void (*set_enabled)(void *context, bool enabled);
+    void (*deinit)(void *context);
+} DeviceOps;  /* a hand-built vtable */
+
+typedef struct {
+    void           *context;  /* WHICH object   */
+    const DeviceOps *ops;     /* WHICH behavior */
+} Device;</code></pre></div>
+      <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>led_device.c / buzzer_device.c</div><pre><code>/* led_device.c */
+static void led_set(void *ctx, bool on) {
+    ((LedState *)ctx)->on = on;  /* LED on/off */
+const DeviceOps LED_OPS = { led_init, led_set, led_deinit };
+
+/* buzzer_device.c */
+static void buzzer_set(void *ctx, bool on) {
+    ((BuzzerState *)ctx)->tone = on ? 2000u : 0u;
+const DeviceOps BUZZER_OPS = { buzzer_init, buzzer_set, buzzer_deinit };</code></pre></div>
+
+      <h3>🎭 Dispatch animation — same call, two devices</h3>
+      <p>Both buttons run the <em>same generic line</em>: <code>Device_SetEnabled(device, …)</code>. Watch which concrete function the ops table routes to.</p>
+      <div class="sim">
+        <div class="sim-head"><h3>🔧 Dispatch demo</h3><span class="spacer"></span>
+          <button class="btn btn-sm" id="dp-reset">Reset</button>
+        </div>
+        <div class="sim-body">
+          <div class="btn-row">
+            <button class="btn btn-primary" id="dp-led-toggle">Toggle LED</button>
+            <button class="btn btn-purple" id="dp-buzz-toggle">Toggle Buzzer</button>
+          </div>
+          <div class="sim-cols">
+            <div>
+              <div id="dp-led-view" style="font-family:var(--mono);font-size:0.85rem;"></div>
+              <div id="dp-buzz-view" style="font-family:var(--mono);font-size:0.85rem;margin-top:8px"></div>
+            </div>
+            <div>
+              <div style="font-size:0.78rem;color:var(--faint);margin-bottom:4px;">Dispatch trace</div>
+              <ol class="trace" id="dp-trace" aria-live="polite"><li style="opacity:0.4;padding:6px 0;">Press a button to start…</li></ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout"><span class="co-icon">✔</span><p><strong>Where this pattern lives</strong><br>HALs, middleware, RTOS driver layers, communication stacks, and plugin systems — anywhere modules must be swappable.</p></div>
+      <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>What it costs</strong><br>More complexity, indirect calls (slightly slower), tougher debugging, possible NULL-callback crashes, and less compile-time type safety.</p></div>
+    </section>
+
+    <section class="block" id="callbacks">
+      <h2><span class="sec-num">6.3</span> Callbacks — "call me when it happens"</h2>
+      <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>uart.h</div><pre><code>typedef void (*RxCallback)(const uint8_t *data,
+                           uint8_t        length,
+                           void          *user_context);
+
+void Uart_RegisterRxCallback(RxCallback cb,
+                             void      *user_context);</code></pre></div>
+      <p>The driver doesn’t know (or care) what the application does with the data — it just calls whatever was registered. Used everywhere in embedded: UART receive handlers, LIN frame notifications, sensor driver events, timers, state-machine events.</p>
+
+      <h3>⚡ Callback sequence</h3>
+      <div class="sim">
+        <div class="sim-head"><h3>📶 Callback demo</h3><span class="spacer"></span>
+          <button class="btn btn-sm" id="cb-reset">Reset</button>
+        </div>
+        <div class="sim-body">
+          <button class="btn btn-primary" id="cb-fire">Fire ISR (simulate RX)</button>
+          <ol class="trace" id="cb-trace" aria-live="polite" style="margin-top:12px"><li style="opacity:0.4;padding:6px 0;">Press button to simulate a UART receive interrupt…</li></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="composition">
+      <h2><span class="sec-num">7.1</span> Composition vs inheritance</h2>
+      <p>C has <strong>no native inheritance</strong>. The recommended pattern is composition: embed the shared part as a plain member.</p>
+      <div class="code-card good"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>composition.c — preferred</div><pre><code>typedef struct {
+    uint8_t id;
+    bool    enabled;
+} DeviceBase;
+
+typedef struct {
+    DeviceBase base;      /* embedded, explicit */
+    uint8_t    brightness;
+} LedDevice;
+
+led.base.id = 1;    /* fully type-checked */
+led.brightness = 80;</code></pre></div>
+      <div class="callout"><span class="co-icon">✔</span><p><strong>Do:</strong> Prefer composition over forced inheritance emulation. Use shared interfaces (ops tables) when behavior differs. Keep base structures small and simple.</p></div>
+      <div class="callout danger"><span class="co-icon">✖</span><p><strong>Avoid:</strong> Unsafe casts without a guaranteed layout. Deep "class hierarchies" rebuilt in C. Hiding base access behind macro magic.</p></div>
+    </section>
+
+    <section class="block" id="decision">
+      <h2>Design decision tool</h2>
+      <div class="sim">
+        <div class="sim-head"><h3>🧭 Pick your scenario</h3></div>
+        <div class="sim-body">
+          <div class="field-row">
+            <label for="dt-scenario">Scenario</label>
+            <select id="dt-scenario">
+              <option value="single">Single device, fixed behavior</option>
+              <option value="swappable">Multiple interchangeable drivers</option>
+              <option value="hide-data">Hide internal state from callers</option>
+              <option value="fixed">Performance-critical, known at compile time</option>
+              <option value="embedded">Long-running embedded system, no heap</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="dt-run" style="margin-top:8px">Show recommendation</button>
+          <div id="dt-answer" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="complete-strip" data-complete-strip>
+      <div class="cs-msg"></div>
+      <button class="btn btn-primary"></button>
+    </div>
+  </main>
+</div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/visualizer.js"></script>
+</body>
+</html>

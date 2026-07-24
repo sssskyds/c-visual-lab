@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" data-page="playground" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C Design Playground — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+  <main id="main-content">
+    <div class="page-head">
+      <div class="kicker">Stage 9</div>
+      <h1>Interactive C Design Playground</h1>
+      <p class="lede">Assemble a design from everything you’ve learned: pick a scenario, choose your encapsulation and allocation strategy, and study the complete generated C listing.</p>
+    </div>
+
+    <section class="block" id="playground">
+      <h2><span class="sec-num">9.1</span> Design bench</h2>
+      <div class="callout idea"><span class="co-icon">ℹ️</span><p><strong>How this works:</strong> this playground generates real, idiomatic C and a <em>simulated</em> execution trace so you can study cause and effect. No compiler runs in your browser — copy any listing into your own toolchain to run it for real.</p></div>
+
+      <div class="sim">
+        <div class="sim-head"><h3>🛠︎ Build your design</h3></div>
+        <div class="sim-body">
+          <div class="field-row">
+            <label for="pg-scenario">Scenario</label>
+            <select id="pg-scenario">
+              <option value="led">LED device (opaque handle + lifecycle)</option>
+              <option value="iface">Multi-device interface (ops table)</option>
+              <option value="callback">UART callback registration</option>
+            </select>
+          </div>
+          <div id="pg-led-opts">
+            <div class="field-row">
+              <label>Options</label>
+              <label><input type="checkbox" id="pg-opaque" checked> Opaque handle</label>
+              <label><input type="checkbox" id="pg-static" checked> Static pool (no heap)</label>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="pg-run">▶ Build &amp; Run (simulated)</button>
+            <button class="btn" id="pg-reset">Reset</button>
+          </div>
+          <div id="pg-code" style="margin-top:8px"></div>
+          <div style="margin-top:12px;font-size:0.78rem;color:var(--faint);">Simulated output</div>
+          <pre class="console" id="pg-console" aria-live="polite">// press “Build &amp; Run (simulated)” to trace this design</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2><span class="sec-num">9.2</span> Things to try</h2>
+      <div class="grid cols-3">
+        <div class="card tight">
+          <h3>🔒 Toggle “opaque handle” off</h3>
+          <p>Compare the two headers. What can app code touch now? Which version survives a refactor of the struct without breaking callers?</p>
+        </div>
+        <div class="card tight">
+          <h3>🧱 Toggle “static pool” off</h3>
+          <p>Watch the trace change from pool slots to malloc/free. Which failure modes from the Pitfalls page apply to each strategy?</p>
+        </div>
+        <div class="card tight">
+          <h3>🎭 Switch to the interface scenario</h3>
+          <p>Find the single line in main.c where behavior is selected. That line is the whole point of the ops-table pattern.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="complete-strip" data-complete-strip>
+      <div class="cs-msg"></div>
+      <button class="btn btn-primary"></button>
+    </div>
+  </main>
+</div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/code-playground.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-page="quiz" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Final Quiz — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout no-sidebar">
+  <main id="main-content">
+    <div class="page-head">
+      <div class="kicker">Stage 10</div>
+      <h1>Final Challenge Quiz</h1>
+      <p class="lede">14 questions spanning every module — aliases, enums, memory layout, unions, opaque types, function pointers, callbacks, composition, and the classic embedded traps. Questions are shuffled each attempt; your best score appears on the dashboard.</p>
+    </div>
+    <div id="final-quiz" aria-live="polite"></div>
+    <div class="complete-strip" data-complete-strip style="margin-top:24px">
+      <div class="cs-msg"></div>
+      <button class="btn btn-primary"></button>
+    </div>
+  </main>
+</div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/quiz.js"></script>
+</body>
+</html>

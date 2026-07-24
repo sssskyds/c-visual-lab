@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-page="structs-memory" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Struct Memory Lab — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+  <main id="main-content">
+    <div class="page-head">
+      <div class="kicker">Stage 3</div>
+      <h1>Struct Memory Lab</h1>
+      <p class="lede">See exactly where every field lands: offsets, alignment, padding, and total size — on three different targets.</p>
+    </div>
+    <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Ground rule:</strong> exact struct layout depends on the compiler, ABI, architecture, packing attributes, and alignment settings. This lab shows <em>typical</em> layouts so you build correct intuition — verify with <code>sizeof</code> / <code>offsetof</code> on your real toolchain.</p></div>
+
+    <section class="block" id="layout-viz">
+      <h2><span class="sec-num">3.1</span> Interactive layout visualizer</h2>
+      <div class="sim" id="ms-sim">
+        <div class="sim-head"><h3>🧲 Memory panel</h3><span class="spacer"></span>
+          <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="ms-packed"> <code>__attribute__((packed))</code>
+          </label>
+        </div>
+        <div class="sim-body">
+          <div class="field-row">
+            <label for="ms-arch">Target</label>
+            <select id="ms-arch">
+              <option value="arm32">Typical 32-bit (ARM Cortex-M)</option>
+              <option value="x64">Typical 64-bit (x86-64)</option>
+              <option value="avr8">Small embedded (8-bit AVR-like)</option>
+            </select>
+            <label for="ms-example" style="margin-left:8px">Example</label>
+            <select id="ms-example">
+              <option value="">Custom…</option>
+              <option value="bad">Poor field ordering</option>
+              <option value="better">Improved ordering</option>
+              <option value="frame">Protocol frame</option>
+            </select>
+          </div>
+          <textarea id="ms-input" rows="7" placeholder="Type or paste a struct definition…">typedef struct {
+    char    flag;
+    int     count;
+    char    mode;
+} BadLayout;</textarea>
+          <div id="ms-grid" class="mem-grid" style="margin-top:10px" aria-live="polite"></div>
+          <div id="ms-legend" class="mem-legend"></div>
+          <div id="ms-table-wrap" style="margin-top:10px"></div>
+          <div id="ms-errors" style="font-size:0.82rem;color:var(--orange);margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div class="callout idea"><span class="co-icon">💡</span><p><strong>Why reordering saves RAM</strong><br><code>char, int, char</code> needs 3+3 padding bytes (12 total); <code>int, char, char</code> needs only 2 tail bytes (8 total). With 1,000 records in a ring buffer, ordering alone saves 4 KB — real money on a 64 KB MCU. Rule of thumb: <strong>largest fields first</strong>.</p></div>
+      <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Why packed structs bite back</strong><br>Packing removes padding but creates <strong>unaligned fields</strong>. Some cores fault on unaligned access; others quietly split it into slow multi-byte reads. Packed ≠ portable.<br><br><strong>Protocol trap:</strong> casting a received byte buffer straight to a struct couples your code to this compiler’s padding <em>and</em> this CPU’s endianness. Parse protocol data with explicit shifts/<code>memcpy</code>.</p></div>
+    </section>
+
+    <section class="block" id="bug-toggle">
+      <h2><span class="sec-num">3.2</span> Memory Bug Toggle</h2>
+      <p>Same struct, six ways to touch it. Switch modes and watch what the memory does.</p>
+      <div class="sim">
+        <div class="sim-head"><h3>🐞 Access mode</h3><span class="spacer"></span>
+          <select id="bug-mode">
+            <option value="valid">Valid direct access</option>
+            <option value="arrow">Valid pointer (arrow)</option>
+            <option value="nullptr">NULL dereference</option>
+            <option value="uninit">Uninitialised pointer</option>
+            <option value="overrun">Buffer overrun</option>
+            <option value="dangling">Dangling pointer (use-after-free)</option>
+          </select>
+        </div>
+        <div class="sim-body">
+          <div class="sim-cols">
+            <div id="bug-code"></div>
+            <div>
+              <div id="bug-bytes" class="mem-grid" aria-live="polite"></div>
+              <div id="bug-verdict" class="verdict v-ok" style="margin-top:10px" aria-live="polite"></div>
+            </div>
+          </div>
+          <div class="callout danger" style="margin-top:12px"><span class="co-icon">⚠︎</span><p><strong>Why embedded failures feel spooky:</strong> there is no OS to catch a bad write. Corruption lands wherever the pointer points — so systems <em>fail silently, reset via watchdog, corrupt unrelated data, or misbehave only at certain temperatures or timings</em>.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="complete-strip" data-complete-strip>
+      <div class="cs-msg"></div>
+      <button class="btn btn-primary"></button>
+    </div>
+  </main>
+</div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/memory-simulator.js"></script>
+</body>
+</html>
