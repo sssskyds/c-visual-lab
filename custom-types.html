@@ -13,36 +13,56 @@
 <nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
 <div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
 <main id="main-content">
-  <div class="page-head"><div class="kicker">Stage 2</div><h1>Custom Types Deep-Dive</h1>
+  <div class="page-head"><div class="kicker">Stage 5</div><h1>Custom Types Deep-Dive</h1>
     <p class="lede">typedef, enum, struct, union — four tools and the tagged-union pattern used in real embedded firmware.</p></div>
   <section class="block" id="typedef">
-    <h2><span class="sec-num">2.1</span> typedef — naming existing types</h2>
+    <h2><span class="sec-num">5.1</span> typedef — naming existing types</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>typedef.c</div><pre><code>typedef uint32_t Timestamp_ms;
 typedef uint8_t  NodeId;
 
 Timestamp_ms now   = 1000u;
 NodeId       sensor = 3u;</code></pre></div>
+    <ul>
+      <li><strong>Alias, not a new type.</strong> <code>Timestamp_ms</code> <em>is</em> <code>uint32_t</code> to the compiler. <code>Timestamp_ms t = sensor;</code> compiles — the safety is in the reader’s head, not the type checker.</li>
+      <li><strong>Units in the name.</strong> <code>_ms</code>, <code>_us</code>, <code>_mdeg</code>, <code>_counts</code> are the cheapest unit system C has. Never name a time variable bare <code>delay</code> — is it ms, µs, or ticks?</li>
+    </ul>
+    <div class="code-card bad"><div class="code-title"><span class="dot" style="background:#f4756c"></span>typedef-pointer-trap.c — do not typedef bare pointers</div><pre><code>typedef int *IntPtr;
+IntPtr a, b;    /* a is int*, but b is ALSO int* — looks like "a is pointer, b is int" */
+const IntPtr p; /* const int*? NO — int * const (const pointer, mutable data) */</code></pre></div>
+    <p>Typedef-ing a pointer hides the <code>*</code> and inverts how <code>const</code> reads. If you must, name it <code>…_ptr</code> loudly — or better, keep the <code>*</code> visible at the declaration.</p>
   </section>
   <section class="block" id="enum">
-    <h2><span class="sec-num">2.2</span> enum — named integer constants</h2>
+    <h2><span class="sec-num">5.2</span> enum — named integer constants</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>enum.c</div><pre><code>typedef enum {
     DIR_NORTH = 0,
     DIR_EAST,
     DIR_SOUTH,
     DIR_WEST
 } Direction;</code></pre></div>
+    <ul>
+      <li><strong>Values auto-increment</strong> from the previous one. Insert a new enumerator in the middle and every later value shifts — never persist raw enum values to flash, EEPROM, or a wire protocol without explicit values.</li>
+      <li><strong>Underlying type is implementation-defined</strong> (usually <code>int</code>). <code>sizeof(Direction)</code> is typically 4, not 1 — use <code>uint8_t</code> explicitly if you need a 1-byte state field in a packed frame.</li>
+      <li><strong>Bitmask enums</strong> use powers of two so values combine with <code>|</code>: <code>FLAG_RX = 1u &lt;&lt; 0, FLAG_TX = 1u &lt;&lt; 1, FLAG_ERR = 1u &lt;&lt; 2</code>. Test with <code>(flags &amp; FLAG_ERR) != 0</code>, never <code>flags == FLAG_ERR</code>.</li>
+      <li><strong>Always handle the impossible case.</strong> A <code>switch</code> over an enum needs a <code>default:</code> — a corrupted byte can produce a value no enumerator names. Log it, do not ignore it.</li>
+    </ul>
   </section>
   <section class="block" id="struct">
-    <h2><span class="sec-num">2.3</span> struct — named composite type</h2>
+    <h2><span class="sec-num">5.3</span> struct — named composite type</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>struct.c</div><pre><code>typedef struct {
     float    x, y, z;
     uint32_t timestamp;
 } AccelSample;
 
 AccelSample s = { .x=0.1f, .y=9.8f, .z=0.0f, .timestamp=1234 };</code></pre></div>
+    <ul>
+      <li><strong>Structs copy by value.</strong> <code>AccelSample t = s;</code> copies every field (including padding bytes). Assignment and parameter passing are full copies — cheap for small structs, a hidden cost for large ones. Pass large structs by <code>const</code> pointer.</li>
+      <li><strong>Comparison is not defined.</strong> <code>s == t</code> does not compile for structs. Compare field by field, or use <code>memcmp</code> only when you know padding bytes are identical (they usually are not — see Stage 6).</li>
+      <li><strong>Designated initialisers</strong> (<code>.x = …</code>) survive field reordering; positional initialisers silently mis-assign when someone inserts a field. Always designate in production code.</li>
+      <li><strong>Flexible array member (C99):</strong> <code>uint8_t payload[];</code> as the <em>last</em> member of a struct, with the struct allocated as <code>malloc(sizeof(Hdr) + len)</code>. One allocation, one <code>free</code>, header + payload together. Never declare it anywhere but last, and never take <code>sizeof</code> of the flexible member.</li>
+    </ul>
   </section>
   <section class="block" id="union">
-    <h2><span class="sec-num">2.4</span> union &amp; tagged union</h2>
+    <h2><span class="sec-num">5.4</span> union &amp; tagged union</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#f2b345"></span>tagged-union.c</div><pre><code>typedef enum { MSG_TEMP, MSG_ACCEL, MSG_STATUS } MsgType;
 typedef struct {
     MsgType type;
@@ -52,6 +72,21 @@ typedef struct {
         uint8_t  status_code;
     } data;
 } SensorMsg;</code></pre></div>
+    <ul>
+      <li><strong>A union holds one member at a time.</strong> All members share the same memory; <code>sizeof</code> is the largest member’s size (plus alignment). Writing one member and reading another (“type punning”) is implementation-defined in C — it works in practice on GCC/Clang, but the <em>defined</em> way to reinterpret bytes is <code>memcpy</code>.</li>
+      <li><strong>The tag is the contract.</strong> Every read must check <code>msg.type</code> first. Reading the wrong member is a logic bug the compiler cannot catch — which is why the tag exists.</li>
+      <li><strong>Anonymous unions</strong> (C11) let you write <code>msg.temperature</code> instead of <code>msg.data.temperature</code> by omitting the member name. Same memory sharing, less nesting.</li>
+    </ul>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>tagged-union-use.c — switch on the tag, handle every case</div><pre><code>void handle_msg(const SensorMsg *msg) {
+    switch (msg-&gt;type) {
+        case MSG_TEMP:   printf("T=%.1f\n", (double)msg-&gt;data.temperature); break;
+        case MSG_ACCEL:  printf("a=(%.2f,%.2f,%.2f)\n", (double)msg-&gt;data.accel.x,
+                                (double)msg-&gt;data.accel.y, (double)msg-&gt;data.accel.z); break;
+        case MSG_STATUS: printf("status=%u\n", msg-&gt;data.status_code); break;
+        default:         /* corrupted / future tag: log, do not interpret */ break;
+    }
+}</code></pre></div>
+    <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Wire-format warning:</strong> a union’s layout still depends on padding and endianness (Stage 6). Never <code>memcpy</code> a whole <code>SensorMsg</code> onto a UART buffer — serialise field by field with shifts.</p></div>
   </section>
   <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
 </main></div>

@@ -15,14 +15,14 @@
   <aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
   <main id="main-content">
     <div class="page-head">
-      <div class="kicker">Stage 3</div>
+      <div class="kicker">Stage 6</div>
       <h1>Struct Memory Lab</h1>
       <p class="lede">See exactly where every field lands: offsets, alignment, padding, and total size — on three different targets.</p>
     </div>
     <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Ground rule:</strong> exact struct layout depends on the compiler, ABI, architecture, packing attributes, and alignment settings. This lab shows <em>typical</em> layouts so you build correct intuition — verify with <code>sizeof</code> / <code>offsetof</code> on your real toolchain.</p></div>
 
     <section class="block" id="layout-viz">
-      <h2><span class="sec-num">3.1</span> Interactive layout visualizer</h2>
+      <h2><span class="sec-num">6.1</span> Interactive layout visualizer</h2>
       <div class="sim" id="ms-sim">
         <div class="sim-head"><h3>🧲 Memory panel</h3><span class="spacer"></span>
           <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;">
@@ -62,7 +62,7 @@
     </section>
 
     <section class="block" id="bug-toggle">
-      <h2><span class="sec-num">3.2</span> Memory Bug Toggle</h2>
+      <h2><span class="sec-num">6.2</span> Memory Bug Toggle</h2>
       <p>Same struct, six ways to touch it. Switch modes and watch what the memory does.</p>
       <div class="sim">
         <div class="sim-head"><h3>🐞 Access mode</h3><span class="spacer"></span>

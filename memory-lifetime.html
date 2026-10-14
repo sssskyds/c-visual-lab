@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-page="memory-lifetime" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory &amp; Lifetime — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stage 3</div><h1>Memory &amp; Lifetime</h1>
+    <p class="lede">Where variables live, who owns them, and when they die. C gives you three kinds of storage — and no garbage collector to clean up after you. Every leak, double-free, and dangling pointer is a lifetime bug.</p></div>
+
+  <section class="block" id="storage">
+    <h2><span class="sec-num">3.1</span> Three kinds of storage duration</h2>
+    <table class="data"><thead><tr><th>Duration</th><th>Where</th><th>Lifetime</th><th>Typical use</th></tr></thead><tbody>
+      <tr><td class="mono">automatic</td><td>Stack</td><td>Until the enclosing block exits</td><td>Locals, parameters, loop variables</td></tr>
+      <tr><td class="mono">static</td><td>Data / BSS segment</td><td>Whole program run</td><td>Globals, <code>static</code> locals, file-scope state</td></tr>
+      <tr><td class="mono">allocated</td><td>Heap</td><td>From <code>malloc</code> until <code>free</code></td><td>Variable-size buffers, objects outliving a call</td></tr>
+    </tbody></table>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>storage.c</div><pre><code>int  g_count = 0;        /* static duration: zero-initialised, whole run */
+static int s_calls = 0;  /* static + internal linkage: this file only */
+
+void f(void) {
+    int  x = 5;          /* automatic: new x on every call, gone on return */
+    static int kept = 0; /* static local: one instance, keeps value */
+    kept++;
+}</code></pre></div>
+    <ul>
+      <li><strong>Stack is fast and automatic — and small.</strong> A typical embedded stack is a few KB. A <code>uint8_t buf[4096];</code> local can overflow it silently. Large buffers belong in static storage or on the heap, not on the stack.</li>
+      <li><strong>Uninitialised automatics hold garbage.</strong> <code>int x; printf("%d", x);</code> is undefined behavior. Globals and <code>static</code> variables are zero-initialised for you; locals are not.</li>
+      <li><strong>Recursion depth is a stack budget.</strong> Each call consumes a frame. Deep or unbounded recursion on an MCU is a stack-overflow crash waiting for the worst input.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="heap">
+    <h2><span class="sec-num">3.2</span> Heap: <code>malloc</code> / <code>free</code> and the ownership rule</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>heap.c — the complete pattern</div><pre><code>#include &lt;stdlib.h&gt;
+
+uint8_t *buf = malloc(64);      /* ask for 64 bytes */
+if (buf == NULL) { return ERR_NOMEM; }  /* ALWAYS check: malloc can fail */
+
+buf[0] = 0xA5;                  /* use it */
+free(buf);                      /* give it back, exactly once */
+buf = NULL;                     /* NULL it — kills the dangling pointer */</code></pre></div>
+    <p><strong>The ownership rule:</strong> every allocation has exactly one owner at a time, and the owner is responsible for exactly one <code>free</code>. If ownership moves (a function returns a pointer, a struct takes a buffer), document the transfer in the function’s contract: “caller owns the returned pointer and must <code>free</code> it”.</p>
+    <div class="sim"><div class="sim-head"><h3>🧱 Heap timeline</h3><span class="spacer"></span><button class="btn btn-sm" id="heap-reset">Reset</button></div>
+      <div class="sim-body">
+        <div class="btn-row">
+          <button class="btn btn-primary" id="heap-alloc-a">malloc(32) → A</button>
+          <button class="btn" id="heap-alloc-b">malloc(64) → B</button>
+          <button class="btn btn-danger" id="heap-free-a">free(A)</button>
+        </div>
+        <div id="heap-out"></div>
+        <p style="font-size:0.85rem;color:var(--muted)">Try: allocate A, allocate B, free A, then free A again. Then reset and notice what happens if you allocate A twice without freeing — the first block becomes unreachable: that is a leak.</p>
+      </div></div>
+  </section>
+
+  <section class="block" id="bugs">
+    <h2><span class="sec-num">3.3</span> The five lifetime bugs (and how to catch each)</h2>
+    <table class="data"><thead><tr><th>Bug</th><th>What happens</th><th>Detection</th></tr></thead><tbody>
+      <tr><td><strong>Leak</strong></td><td>Allocated memory never freed; heap shrinks until <code>malloc</code> fails</td><td>Valgrind, AddressSanitizer <code>LeakSanitizer</code>, heap watermark checks</td></tr>
+      <tr><td><strong>Double-free</strong></td><td>Same block freed twice; heap metadata corrupted</td><td>ASan, <code>free</code> + <code>NULL</code> habit, ownership discipline</td></tr>
+      <tr><td><strong>Use-after-free</strong></td><td>Pointer used after its block was returned</td><td>ASan, NULL-after-free, short lifetimes</td></tr>
+      <tr><td><strong>Dangling (stack)</strong></td><td>Pointer to a local that has gone out of scope</td><td><code>-Wreturn-local-addr</code>, never return <code>&amp;local</code></td></tr>
+      <tr><td><strong>Buffer overrun</strong></td><td>Write past the allocation corrupts neighbours</td><td>ASan, bounded functions, length checks at the boundary</td></tr>
+    </tbody></table>
+    <div class="code-card bad"><div class="code-title"><span class="dot" style="background:#f4756c"></span>lifetime-bugs.c — spot all four</div><pre><code>int *p = malloc(sizeof *p);   /* 1. leak if we return early below */
+if (cond) return -1;           /*    p is lost — no free() on this path */
+
+free(p);
+free(p);                       /* 2. double-free */
+
+*p = 7;                        /* 3. use-after-free */
+
+int *q = NULL;
+{ int tmp = 9; q = &amp;tmp; }     /* 4. q dangles: tmp is gone */
+*q = 1;                        /*    undefined behavior */</code></pre></div>
+    <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Run your code under AddressSanitizer while developing:</strong> <code>gcc -fsanitize=address,undefined -g</code>. It catches most of these bugs the first time they execute, with a stack trace. It is not for shipping firmware — it is for finding bugs before you ship.</p></div>
+  </section>
+
+  <section class="block" id="patterns">
+    <h2><span class="sec-num">3.4</span> Safer patterns: init/destroy pairs and static pools</h2>
+    <div class="code-card good"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>init-destroy.c — symmetry is the contract</div><pre><code>/* Every Create has a Destroy. Every Init has a Deinit.
+   The destroy function undoes EXACTLY what create did, in reverse. */
+Sensor *Sensor_Create(void)  { /* malloc + init, or claim pool slot */ }
+void    Sensor_Destroy(Sensor *s) { /* release everything Create acquired */ }
+
+/* Embedded alternative: no heap at all — fixed pool, deterministic. */
+#define SENSOR_MAX 4
+static Sensor  pool[SENSOR_MAX];
+static bool    pool_used[SENSOR_MAX];
+/* Create claims a free slot; Destroy marks it free. No fragmentation,
+   no malloc failure at 3 a.m., worst-case memory known at compile time. */</code></pre></div>
+    <ul>
+      <li><strong><code>calloc</code> zeroes;</strong> <code>malloc</code> does not. <code>calloc(n, sizeof *p)</code> also makes the element count explicit.</li>
+      <li><strong><code>realloc</code>:</strong> assign to a temporary — <code>void *tmp = realloc(p, n); if (tmp) p = tmp;</code> — because on failure <code>realloc</code> returns <code>NULL</code> and the original block is still yours.</li>
+      <li><strong><code>sizeof *p</code> over <code>sizeof(type)</code>:</strong> <code>malloc(sizeof *p)</code> stays correct if <code>p</code>’s type changes; <code>malloc(sizeof(int))</code> silently does not.</li>
+      <li><strong>RAII does not exist in C.</strong> The discipline is manual: every acquisition path must have a release path, including every early-return and error branch. Review error paths first — that is where leaks live.</li>
+    </ul>
+  </section>
+
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/deep-dive.js"></script>
+</body></html>

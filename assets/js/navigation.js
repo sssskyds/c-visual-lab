@@ -4,15 +4,19 @@
 */
 "use strict";
 window.CVL_PAGES = [
-  { id: "index",         file: "index.html",         title: "Dashboard",                   short: "Home",       lesson: false },
-  { id: "concepts",      file: "concepts.html",      title: "Why Custom Types?",           short: "Concepts",   lesson: true, stage: 1 },
-  { id: "custom-types",  file: "custom-types.html",  title: "typedef \u00b7 enum \u00b7 struct \u00b7 union",   short: "Types",      lesson: true, stage: 2 },
-  { id: "structs-memory",file: "structs-memory.html",title: "Struct Memory Lab",           short: "Memory",     lesson: true, stage: 3 },
-  { id: "oops-in-c",     file: "oops-in-c.html",     title: "OOP in Plain C",              short: "OOP",        lesson: true, stage: 4 },
-  { id: "polymorphism",  file: "polymorphism.html",  title: "Interfaces & Polymorphism",  short: "Interfaces", lesson: true, stage: 5 },
-  { id: "pitfalls",      file: "pitfalls.html",      title: "Catches & Common Bugs",      short: "Pitfalls",   lesson: true, stage: 6 },
-  { id: "playground",    file: "playground.html",    title: "C Design Playground",        short: "Playground", lesson: true, stage: 7 },
-  { id: "quiz",          file: "quiz.html",          title: "Final Challenge Quiz",       short: "Quiz",       lesson: true, stage: 8 }
+  { id: "index",              file: "index.html",              title: "Dashboard",                   short: "Home",       lesson: false },
+  { id: "foundations",       file: "foundations.html",       title: "C Foundations",               short: "Foundations",lesson: true, stage: 1 },
+  { id: "pointers",           file: "pointers.html",           title: "Pointers, Arrays & Strings", short: "Pointers",   lesson: true, stage: 2 },
+  { id: "memory-lifetime",   file: "memory-lifetime.html",   title: "Memory & Lifetime",           short: "Lifetime",   lesson: true, stage: 3 },
+  { id: "concepts",           file: "concepts.html",           title: "Why Custom Types?",           short: "Concepts",   lesson: true, stage: 4 },
+  { id: "custom-types",       file: "custom-types.html",       title: "typedef \u00b7 enum \u00b7 struct \u00b7 union",   short: "Types",      lesson: true, stage: 5 },
+  { id: "structs-memory",     file: "structs-memory.html",     title: "Struct Memory Lab",           short: "Memory",     lesson: true, stage: 6 },
+  { id: "oops-in-c",          file: "oops-in-c.html",          title: "OOP in Plain C",              short: "OOP",        lesson: true, stage: 7 },
+  { id: "polymorphism",       file: "polymorphism.html",       title: "Interfaces & Polymorphism",  short: "Interfaces", lesson: true, stage: 8 },
+  { id: "pitfalls",           file: "pitfalls.html",           title: "Catches & Common Bugs",      short: "Pitfalls",   lesson: true, stage: 9 },
+  { id: "preprocessor-build", file: "preprocessor-build.html", title: "Preprocessor, Modules & Build", short: "Preprocessor", lesson: true, stage: 10 },
+  { id: "playground",         file: "playground.html",         title: "C Design Playground",        short: "Playground", lesson: true, stage: 11 },
+  { id: "quiz",               file: "quiz.html",               title: "Final Challenge Quiz",       short: "Quiz",       lesson: true, stage: 12 }
 ];
 
 (function () {

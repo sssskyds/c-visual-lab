@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-page="preprocessor-build" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preprocessor, Modules &amp; Build — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stage 10</div><h1>Preprocessor, Modules &amp; Build</h1>
+    <p class="lede">The preprocessor runs before the compiler: it pastes headers, expands macros, and switches code on and off. It knows nothing about C — it only manipulates text. That is exactly why it bites.</p></div>
+
+  <section class="block" id="headers">
+    <h2><span class="sec-num">10.1</span> Headers, include guards &amp; linkage</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>sensor.h — the module contract</div><pre><code>#ifndef SENSOR_H
+#define SENSOR_H          /* include guard: header is pasted at most once */
+
+#include &lt;stdint.h&gt;
+#include &lt;stdbool.h&gt;
+
+typedef struct Sensor Sensor;   /* opaque: definition lives in sensor.c */
+
+Sensor *Sensor_Create(void);
+void    Sensor_Destroy(Sensor *s);
+bool    Sensor_Read(Sensor *s, int32_t *out_mdeg);
+
+#endif /* SENSOR_H */</code></pre></div>
+    <ul>
+      <li><strong>Header = declaration; <code>.c</code> file = definition.</strong> A function is defined once (in one <code>.c</code>) and declared in the header wherever it is used. Defining a function in a header and including it twice gives a duplicate-symbol link error.</li>
+      <li><strong><code>extern</code> globals:</strong> declare <code>extern int g_count;</code> in the header, define <code>int g_count = 0;</code> in exactly one <code>.c</code>. Prefer accessor functions over shared globals — globals hide data flow.</li>
+      <li><strong><code>static</code> in a <code>.c</code> file = private to that file.</strong> A <code>static</code> helper or variable in <code>sensor.c</code> cannot be named from any other file. That is the module boundary in C.</li>
+      <li><strong>Include order:</strong> each header should include what it needs and compile standalone. Test: <code>gcc -c sensor.c</code> and a file that includes only <code>sensor.h</code> should both compile.</li>
+      <li><strong><code>#pragma once</code></strong> is widely supported and shorter, but it is not standard C. Include guards are the portable choice; many codebases use both.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="macros">
+    <h2><span class="sec-num">10.2</span> Macros: text substitution with sharp edges</h2>
+    <div class="code-card bad"><div class="code-title"><span class="dot" style="background:#f4756c"></span>macros-bad.c</div><pre><code>#define SQUARE(x) x * x
+SQUARE(2 + 3);     /* → 2 + 3 * 2 + 3 = 11, not 25 */
+
+#define MAX(a, b) a &gt; b ? a : b
+int m = MAX(x, y) + 1;   /* → x &gt; y ? x : y + 1 — wrong branch value */
+
+#define SET_BIT(reg, bit) reg |= 1 &lt;&lt; bit   /* unparenthesised bit too */</code></pre></div>
+    <div class="code-card good"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>macros-good.c</div><pre><code>#define SQUARE(x) ((x) * (x))
+#define MAX(a, b) (((a) &gt; (b)) ? (a) : (b))
+#define SET_BIT(reg, bit) ((reg) |= (1u &lt;&lt; (bit)))
+
+/* Multi-statement macro: do-while(0) makes it behave like one statement */
+#define SWAP(a, b) do { int _t = (a); (a) = (b); (b) = _t; } while (0)</code></pre></div>
+    <div class="sim"><div class="sim-head"><h3>🔍 Macro expansion playground</h3><span class="spacer"></span></div>
+      <div class="sim-body">
+        <div class="field-row"><label for="macro-pick">Macro</label>
+          <select id="macro-pick">
+            <option value="square-bad">SQUARE — unparenthesised</option>
+            <option value="square-good">SQUARE — parenthesised</option>
+            <option value="double-eval">SQUARE(i++) — double evaluation</option>
+            <option value="max">MAX(a, 5)</option>
+          </select>
+          <label for="macro-arg">Argument</label><input type="text" id="macro-arg" value="2+3" style="max-width:120px">
+          <button class="btn btn-primary" id="macro-run">Expand</button>
+        </div>
+        <div id="macro-out"></div>
+      </div></div>
+    <ul>
+      <li><strong>Parenthesise every parameter and the whole body.</strong> The preprocessor does not know operator precedence — it pastes text.</li>
+      <li><strong>Double evaluation:</strong> a macro that mentions its argument twice evaluates side effects twice. <code>SQUARE(i++)</code> increments twice and is undefined behavior. Prefer <code>static inline</code> functions whenever you do not need token pasting or <code>#</code> stringification.</li>
+      <li><strong><code>#</code> and <code>##</code>:</strong> <code>#x</code> turns an argument into a string literal; <code>a ## b</code> glues tokens together (e.g. building register names). Both work only in macros.</li>
+      <li><strong>Constants:</strong> prefer <code>enum</code> or <code>static const</code> over <code>#define</code> for typed constants — they appear in the debugger and obey scope. Keep <code>#define</code> for conditional compilation and things that must be compile-time constants (array sizes in C89-style code, bit masks).</li>
+    </ul>
+  </section>
+
+  <section class="block" id="conditional">
+    <h2><span class="sec-num">10.3</span> Conditional compilation: one codebase, many targets</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>config.h</div><pre><code>/* Feature selection at build time — no runtime cost, no dead code shipped. */
+#define LOG_LEVEL 2   /* 0=off, 1=errors, 2=info, 3=debug */
+
+#if LOG_LEVEL &gt;= 2
+#  define LOG_INFO(...) printf(__VA_ARGS__)
+#else
+#  define LOG_INFO(...) ((void)0)   /* compiled out entirely */
+#endif
+
+#ifdef UNIT_TEST
+#  define FLASH_PAGE_SIZE 256
+#else
+#  define FLASH_PAGE_SIZE 2048
+#endif</code></pre></div>
+    <ul>
+      <li><strong><code>#if</code> vs <code>#ifdef</code>:</strong> <code>#ifdef X</code> tests whether <code>X</code> is defined at all; <code>#if X &gt; 2</code> tests its value. An undefined macro in <code>#if</code> counts as 0 — a typo silently takes the wrong branch. Use <code>#if defined(X)</code> when you mean “defined”.</li>
+      <li><strong>Keep conditionals shallow.</strong> Nested <code>#if</code> blocks across files become untestable. Centralise target selection in one <code>config.h</code> / build flag (<code>-DTARGET_X</code>), and keep the <code>#if</code> at module boundaries.</li>
+      <li><strong>Never hide a whole function body behind <code>#ifdef</code> without a fallback</strong> — callers break on the configuration where it vanishes. Provide a stub with the same signature.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="qualifiers">
+    <h2><span class="sec-num">10.4</span> <code>const</code>, <code>volatile</code> &amp; <code>static</code>: the three qualifiers that matter</h2>
+    <table class="data"><thead><tr><th>Keyword</th><th>Means</th><th>Embedded use</th></tr></thead><tbody>
+      <tr><td class="mono">const</td><td>Do not modify through this name</td><td>Lookup tables in flash, read-only parameters, <code>const uint8_t *</code> buffers</td></tr>
+      <tr><td class="mono">volatile</td><td>This memory can change outside the program — never cache it, never drop a read/write</td><td>Hardware registers, ISR-shared flags, memory-mapped I/O</td></tr>
+      <tr><td class="mono">static</td><td>Internal linkage (file scope) or preserved value (local)</td><td>Module-private helpers/state, one-time initialisation</td></tr>
+    </tbody></table>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#f2b345"></span>registers.c — volatile is not optional</div><pre><code>/* Memory-mapped status register: the hardware changes it. */
+#define STATUS_REG (*(volatile uint32_t *)0x40001000u)
+
+while ((STATUS_REG &amp; READY_BIT) == 0) { /* poll */ }
+/* Without volatile, the compiler reads STATUS_REG ONCE and
+   optimises the loop into an infinite loop or nothing at all. */
+
+/* ISR-shared flag: volatile + atomicity still matters. */
+volatile bool data_ready = false;
+/* A 1-byte bool flag is atomic on most MCUs; a 32-bit counter
+   shared with an ISR needs a critical section or atomic access. */</code></pre></div>
+    <div class="callout danger"><span class="co-icon">✖</span><p><strong><code>volatile</code> is not a concurrency primitive.</strong> It stops the compiler from caching a value. It does not make multi-byte reads atomic, does not order memory accesses across cores, and does not replace a mutex or critical section. On multi-core / DMA systems, you need barriers and proper synchronisation on top.</p></div>
+  </section>
+
+  <section class="block" id="bits">
+    <h2><span class="sec-num">10.5</span> Bit manipulation: masks, shifts &amp; bit-fields</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>bits.c</div><pre><code>uint32_t reg = 0;
+reg |=  (1u &lt;&lt; 5);          /* set bit 5 */
+reg &amp;= ~(1u &lt;&lt; 5);         /* clear bit 5 */
+reg ^=  (1u &lt;&lt; 5);          /* toggle bit 5 */
+bool on = (reg &gt;&gt; 5) &amp; 1u;   /* test bit 5 */
+
+reg = (reg &amp; ~0xFF00u) | ((field &lt;&lt; 8) &amp; 0xFF00u);  /* replace bits 8–15 */</code></pre></div>
+    <ul>
+      <li><strong>Use unsigned types for all bit work.</strong> Signed shifts and signed bit-fields are implementation-defined or UB. The <code>u</code> suffix on <code>1u</code> is load-bearing.</li>
+      <li><strong>Mask after shifting in.</strong> <code>(field &lt;&lt; 8) &amp; 0xFF00u</code> guarantees stray high bits in <code>field</code> cannot corrupt neighbouring fields.</li>
+      <li><strong>Bit-fields (<code>unsigned x : 3;</code>) are convenient and non-portable.</strong> The standard does not fix their layout, packing order, or whether plain <code>int</code> bit-fields are signed. Use them for in-memory flags you control; use explicit masks and shifts for wire formats and hardware registers.</li>
+      <li><strong>Endianness:</strong> a <code>uint32_t</code> stored as bytes is little-endian on ARM Cortex-M and x86, big-endian on many network protocols and some MCUs. Serialise with shifts (<code>(v &gt;&gt; 24) &amp; 0xFF</code>, …), never by casting a struct over a byte buffer.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="build">
+    <h2><span class="sec-num">10.6</span> From <code>.c</code> to firmware: the build in one picture</h2>
+    <ol class="trace">
+      <li><strong>Preprocess</strong> — <code>gcc -E</code>: paste headers, expand macros, strip comments. Output is one big translation unit.</li>
+      <li><strong>Compile</strong> — <code>gcc -c</code>: translate each <code>.c</code> file to an object file (<code>.o</code>). This is where syntax, type, and most warning errors appear.</li>
+      <li><strong>Assemble</strong> — usually folded into compilation: object files hold machine code + unresolved symbols.</li>
+      <li><strong>Link</strong> — resolve every symbol, lay out flash/RAM, produce the <code>.elf</code> / <code>.bin</code>. Duplicate definitions and undefined references surface here, not earlier.</li>
+    </ol>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>build.sh — a sane starting command line</div><pre><code>gcc -std=c11 -Wall -Wextra -Wconversion -Wsign-conversion \
+    -Wimplicit-fallthrough -Wshadow -pedantic \
+    -O2 -g -fsanitize=address,undefined \
+    -o app main.c sensor.c uart.c</code></pre></div>
+    <p>Drop <code>-fsanitize</code> for on-target firmware builds (it needs a hosted runtime), and add your MCU flags (<code>-mcpu=… -mthumb</code>, linker script, startup code). Keep the warning flags everywhere — they are the cheapest bug-finder you will ever own.</p>
+  </section>
+
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/deep-dive.js"></script>
+</body></html>

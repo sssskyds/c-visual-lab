@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-page="foundations" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C Foundations — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stage 1</div><h1>C Foundations</h1>
+    <p class="lede">The ground every later lesson stands on: how C stores values, what the compiler silently converts, and how control flow and functions actually work. If you only read one new page, read this one.</p></div>
+
+  <section class="block" id="types">
+    <h2><span class="sec-num">1.1</span> Types: size is a property of the target, not the language</h2>
+    <p>C guarantees <em>minimum ranges</em>, not exact sizes. <code>int</code> is at least 16 bits; on most 32- and 64-bit targets it happens to be 32 bits. <code>long</code> is 4 bytes on ILP32 (most 32-bit embedded ABIs) and on LLP64 (Windows 64-bit), and 8 bytes on LP64 (Linux/macOS 64-bit). Code that assumes a size breaks silently when it moves to a new MCU or compiler.</p>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>fixed-width.c — say what you mean</div><pre><code>#include &lt;stdint.h&gt;
+#include &lt;stdbool.h&gt;
+
+int32_t  temperature_mdeg;  /* exactly 32 bits, signed */
+uint16_t adc_counts;        /* exactly 16 bits, unsigned */
+intptr_t address_as_int;    /* wide enough to hold a pointer */
+bool     fault;             /* true / false, from stdbool.h */</code></pre></div>
+    <div class="callout good"><span class="co-icon">✔</span><p><strong>Embedded habit:</strong> use <code>&lt;stdint.h&gt;</code> types (<code>int32_t</code>, <code>uint8_t</code>, …) for anything whose width matters — registers, protocols, packed data. Reserve plain <code>int</code> for loop counters and local arithmetic where width does not matter.</p></div>
+    <div class="sim"><div class="sim-head"><h3>📏 Type-size explorer</h3><span class="spacer"></span><label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;">Data model <select id="te-arch"><option value="ilp32">ILP32 — typical 32-bit</option><option value="lp64">LP64 — typical 64-bit</option></select></label></div>
+      <div class="sim-body"><div id="te-table"></div></div></div>
+  </section>
+
+  <section class="block" id="promotion">
+    <h2><span class="sec-num">1.2</span> Integer promotion &amp; conversion: the silent rewrites</h2>
+    <p>Before most operators run, C <em>promotes</em> small integer types (<code>char</code>, <code>short</code>, bit-fields, <code>_Bool</code>) to <code>int</code>, and then applies the <em>usual arithmetic conversions</em> to make both operands a common type. The conversion rules, not the operator, decide the result.</p>
+    <ul>
+      <li><strong>Promotion:</strong> <code>uint8_t a = 200, b = 100; a + b</code> is computed in <code>int</code> → 300. The wrap to 44 happens only if you store it back into a <code>uint8_t</code>.</li>
+      <li><strong>Signed → unsigned:</strong> in a mixed comparison, the signed operand converts to unsigned. <code>-1 &lt; 1U</code> is <strong>false</strong>.</li>
+      <li><strong>Truncation:</strong> assigning a wider value to a narrower type keeps the low bits — silently. <code>uint8_t x = 300;</code> gives 44, no warning by default.</li>
+      <li><strong>Signed overflow is undefined behavior.</strong> Unsigned overflow wraps (modulo 2<sup>n</sup>). Never rely on signed wrap-around.</li>
+    </ul>
+    <div class="sim"><div class="sim-head"><h3>🧪 Promotion predictor</h3><span class="spacer"></span></div>
+      <div class="sim-body">
+        <div class="field-row"><label for="promo-case">Expression</label>
+          <select id="promo-case">
+            <option value="small">uint8_t 200 + uint8_t 100</option>
+            <option value="compare">-1 &lt; 1U</option>
+            <option value="shift">1 &lt;&lt; 31 (32-bit int)</option>
+            <option value="div">5 / 2 vs 5.0 / 2</option>
+          </select>
+          <button class="btn btn-primary" id="promo-run">Predict the result</button>
+        </div>
+        <div id="promo-out"></div>
+      </div></div>
+    <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Compiler flags that catch these:</strong> <code>-Wall -Wextra -Wconversion -Wsign-conversion -Wsign-compare</code>. Turn them on for every new project; the noise at first is exactly the bugs you want to see.</p></div>
+  </section>
+
+  <section class="block" id="operators">
+    <h2><span class="sec-num">1.3</span> Operators &amp; precedence: the traps that survive code review</h2>
+    <div class="code-card bad"><div class="code-title"><span class="dot" style="background:#f4756c"></span>precedence.c — three classics</div><pre><code>if (flags &amp; MASK == READY)  /* == binds tighter than &amp; ! */
+    /* parses as: flags &amp; (MASK == READY) — almost never what you meant */
+
+if (x = get_value() != 0)       /* != binds tighter than = */
+    /* assigns the comparison result (0/1), not the value */
+
+int y = a &lt;&lt; 2 + 1;                 /* + binds tighter than &lt;&lt; */
+    /* parses as a &lt;&lt; 3, not (a &lt;&lt; 2) + 1 */</code></pre></div>
+    <div class="code-card good"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>fixed — parentheses are free</div><pre><code>if ((flags &amp; MASK) == READY) { ... }
+
+int v = get_value();
+if ((x = v) != 0) { ... }      /* or split into two statements */
+
+int y = (a &lt;&lt; 2) + 1;</code></pre></div>
+    <ul>
+      <li><strong><code>=</code> vs <code>==</code>:</strong> <code>if (x = 0)</code> compiles and is always false. Compilers warn with <code>-Wall</code>; write the constant first (<code>0 == x</code>) only if your team style demands it.</li>
+      <li><strong>Short-circuit:</strong> <code>&amp;&amp;</code> and <code>||</code> stop as soon as the result is known. <code>if (p &amp;&amp; p-&gt;ready)</code> is safe; <code>if (p-&gt;ready &amp;&amp; p)</code> is not.</li>
+      <li><strong><code>++</code> / <code>--</code>:</strong> <code>i++</code> yields the old value, <code>++i</code> the new one. Never use the same variable twice with side effects in one expression: <code>a[i++] = i++;</code> is undefined behavior.</li>
+      <li><strong>Ternary:</strong> <code>cond ? a : b</code> evaluates exactly one branch — handy for <code>const</code> initialisers: <code>const int limit = (mode == FAST) ? 1000 : 100;</code></li>
+    </ul>
+  </section>
+
+  <section class="block" id="control">
+    <h2><span class="sec-num">1.4</span> Control flow: write the exit condition first</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>control.c</div><pre><code>/* for — when you know the count */
+for (int i = 0; i &lt; len; i++) { sum += buf[i]; }
+
+/* while — when you wait for a condition */
+while (!uart_rx_ready() &amp;&amp; timeout-- &gt; 0) { /* poll */ }
+if (timeout == 0) { return ERR_TIMEOUT; }
+
+/* switch — one value, many cases. break is load-bearing. */
+switch (cmd) {
+    case CMD_START: start(); break;
+    case CMD_STOP:  stop();  break;
+    default:        /* unknown command: log, do not ignore */ break;
+}</code></pre></div>
+    <ul>
+      <li><strong>Missing <code>break</code> falls through</strong> to the next case. If fall-through is deliberate, say so in a comment — and compile with <code>-Wimplicit-fallthrough</code>.</li>
+      <li><strong><code>for</code> loop scope:</strong> <code>for (int i = 0; …)</code> (C99+) keeps <code>i</code> inside the loop. Declaring it outside is only needed when you read it afterwards.</li>
+      <li><strong>Early return beats deep nesting.</strong> Validate inputs at the top and return; the happy path stays at one indent level and stays readable.</li>
+      <li><strong><code>goto</code> has one legitimate home:</strong> the single cleanup label at the end of a function that acquires several resources. Everywhere else, restructure.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="functions">
+    <h2><span class="sec-num">1.5</span> Functions, scope &amp; storage: where variables live</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>scope.c</div><pre><code>static int calls = 0;   /* file scope, internal linkage: this file only */
+
+int next_id(void) {
+    static int seq = 0; /* static local: keeps its value between calls */
+    return ++seq;
+}
+
+int clamp(int v, int lo, int hi) {   /* parameters are locals */
+    if (v &lt; lo) return lo;         /* return exits immediately */
+    if (v &gt; hi) return hi;
+    return v;
+}</code></pre></div>
+    <ul>
+      <li><strong>Automatic (local) variables</strong> live on the stack and die at the closing brace. Returning <code>&amp;local</code> is a dangling-pointer bug — see Stage 3.</li>
+      <li><strong><code>static</code> locals</strong> keep their value between calls but are still only visible inside the function. They are not thread-safe and they hide state — use sparingly.</li>
+      <li><strong><code>static</code> at file scope</strong> means “private to this translation unit”. It is the C way to hide a helper function or module state.</li>
+      <li><strong>One definition rule (informal):</strong> a function or global is <em>defined</em> once (in one <code>.c</code> file) and <em>declared</em> in a header wherever it is used. See Stage 10 for headers and linkage.</li>
+      <li><strong>Pass by value:</strong> C always copies arguments. To let a function change the caller’s variable, pass a pointer: <code>void reset(int *p) { *p = 0; }</code> — the pointer itself is still copied.</li>
+    </ul>
+    <div class="callout idea"><span class="co-icon">💡</span><p><strong>Try it:</strong> compile every snippet on this page with <code>gcc -std=c11 -Wall -Wextra -Wconversion -Wsign-compare -Wimplicit-fallthrough</code> and read the warnings before running anything. The warnings <em>are</em> the lesson.</p></div>
+  </section>
+
+  <section class="block" id="arrays-strings">
+    <h2><span class="sec-num">1.6</span> Arrays &amp; strings: the length is your job</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#f2b345"></span>strings.c</div><pre><code>char name[16] = "sensor";   /* 7 chars + '\0', rest zero-filled */
+char raw[4]   = { 'a', 'b', 'c', 'd' };  /* NOT a string: no terminator! */
+
+size_t n = sizeof name / sizeof name[0];  /* 16 — works only in this scope */
+size_t len = strlen(name);                /* 6 — counts until '\0' */</code></pre></div>
+    <ul>
+      <li><strong>C arrays do not know their length.</strong> Pass the length alongside the pointer, or agree on a terminator (<code>'\0'</code> for strings). An array parameter <code>void f(int a[])</code> is really <code>void f(int *a)</code> — <code>sizeof a</code> inside <code>f</code> gives the pointer size.</li>
+      <li><strong>Strings are <code>char</code> arrays ending in <code>'\0'</code>.</strong> Every string function (<code>strcpy</code>, <code>strcat</code>, <code>sprintf</code>) trusts that terminator. Prefer the bounded forms: <code>snprintf(dst, sizeof dst, …)</code>, <code>strncpy</code> + explicit terminator.</li>
+      <li><strong>Initialisers:</strong> <code>int a[4] = { 1, 2 };</code> zero-fills the rest. Designated initialisers make intent explicit: <code>int a[4] = { [0]=1, [3]=9 };</code></li>
+      <li><strong>Off-by-one:</strong> valid indices for <code>char buf[N]</code> are <code>0 … N-1</code>. <code>buf[N]</code> is out of bounds — the single most common C bug.</li>
+    </ul>
+  </section>
+
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/deep-dive.js"></script>
+</body></html>

@@ -13,10 +13,10 @@
 <nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
 <div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
 <main id="main-content">
-  <div class="page-head"><div class="kicker">Stages 4–5</div><h1>OOP Thinking in C</h1>
+  <div class="page-head"><div class="kicker">Stage 7</div><h1>OOP Thinking in C</h1>
     <p class="lede">Objects, methods, self, encapsulation, opaque handles, and clean lifecycle management — without a class keyword in sight.</p></div>
   <section class="block" id="objects">
-    <h2><span class="sec-num">4.1</span> struct = object; functions = methods</h2>
+    <h2><span class="sec-num">7.1</span> struct = object; functions = methods</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>led.h</div><pre><code>typedef struct LedState LedState;
 
 LedState *Led_Create(uint8_t id);
@@ -25,7 +25,7 @@ void      Led_Toggle(LedState *self);
 void      Led_Destroy(LedState *self);</code></pre></div>
   </section>
   <section class="block" id="opaque">
-    <h2><span class="sec-num">5.1</span> Opaque handles</h2>
+    <h2><span class="sec-num">7.2</span> Opaque handles</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>led.c — struct defined only here</div><pre><code>struct LedState {
     uint8_t  id;
     uint8_t  brightness;

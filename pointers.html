@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" data-page="pointers" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pointers, Arrays &amp; Strings — C Visual Lab</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
+<div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
+<main id="main-content">
+  <div class="page-head"><div class="kicker">Stage 2</div><h1>Pointers, Arrays &amp; Strings</h1>
+    <p class="lede">The heart of C — and the source of most of its bugs. A pointer is an address plus a type. The type decides how big a step is, what you are allowed to read, and what the compiler checks for you.</p></div>
+
+  <section class="block" id="basics">
+    <h2><span class="sec-num">2.1</span> The two operators: <code>&amp;</code> and <code>*</code></h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>pointer-basics.c</div><pre><code>int  value = 42;
+int *p = &amp;value;   /* &amp; = "address of" — p holds value's address */
+
+*p = 43;             /* * = "follow the pointer" — writes through p */
+                     /* value is now 43 */
+
+int *q = NULL;       /* NULL = "points nowhere". Never dereference it. */
+if (p != NULL) { *p = 0; }   /* check first, dereference second */</code></pre></div>
+    <ul>
+      <li><strong>A pointer has two things:</strong> an address (where) and a pointed-to type (what). <code>int *</code> and <code>char *</code> holding the same address mean different things — the compiler reads/writes different sizes through them.</li>
+      <li><strong><code>*</code> in a declaration is not the dereference operator.</strong> <code>int *p;</code> declares “<code>*p</code> is an <code>int</code>”. Write the <code>*</code> next to the name (<code>int *p</code>), not the type — <code>int* a, b;</code> declares <code>a</code> as pointer, <code>b</code> as plain <code>int</code>.</li>
+      <li><strong>Initialise every pointer.</strong> <code>int *p;</code> holds garbage. <code>int *p = NULL;</code> fails loudly and testably instead of corrupting a random address.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="arithmetic">
+    <h2><span class="sec-num">2.2</span> Pointer arithmetic: steps are sized by the type</h2>
+    <p><code>p + 1</code> does not add one byte — it adds <code>sizeof(*p)</code> bytes, moving to the <em>next element</em>. This is what makes pointers and arrays interchangeable in expressions, and what makes a wrong pointer type silently read the wrong bytes.</p>
+    <div class="sim"><div class="sim-head"><h3>🧭 Pointer arithmetic visualizer</h3><span class="spacer"></span></div>
+      <div class="sim-body">
+        <div class="field-row"><label for="ptr-type">Element type</label>
+          <select id="ptr-type"><option value="u8">uint8_t (1 byte)</option><option value="u16">uint16_t (2 bytes)</option><option value="u32" selected>uint32_t (4 bytes)</option></select>
+          <label for="ptr-index">Index</label>
+          <select id="ptr-index"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        </div>
+        <div id="ptr-out"></div>
+      </div></div>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>arithmetic.c — the four identities</div><pre><code>uint32_t buf[6] = { 10, 20, 30, 40, 50, 60 };
+uint32_t *p = buf;            /* array decays to &amp;buf[0] */
+
+p[2]      == *(p + 2);         /* indexing IS pointer arithmetic */
+*(p + 2)  == 30;
+p++;                          /* now points at buf[1] */
+p - buf   == 1;               /* pointer subtraction counts ELEMENTS, not bytes */
+&amp;buf[5] - &amp;buf[0] == 5;</code></pre></div>
+    <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Out-of-bounds arithmetic is undefined behavior</strong> — even forming a pointer more than one past the end, without dereferencing it, is UB. One-past-the-end is allowed (as a loop sentinel); two-past is not.</p></div>
+  </section>
+
+  <section class="block" id="decay">
+    <h2><span class="sec-num">2.3</span> Array decay: where <code>sizeof</code> stops working</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#f4756c"></span>decay.c — the most common sizeof bug</div><pre><code>int buf[10];
+
+sizeof buf;        /* 40 — whole array, in this scope only */
+
+void f(int a[]) {
+    sizeof a;      /* 4 or 8 — POINTER size! a decayed on entry */
+}
+
+void f_good(int *a, size_t len) {
+    for (size_t i = 0; i &lt; len; i++) { /* ... */ }
+}</code></pre></div>
+    <ul>
+      <li><strong>Decay exceptions:</strong> an array does <em>not</em> decay when it is the operand of <code>sizeof</code>, <code>&amp;</code>, or a string-literal initialiser. Everywhere else, it becomes a pointer to its first element.</li>
+      <li><strong><code>&amp;buf</code> vs <code>buf</code>:</strong> same address, different types. <code>buf</code> decays to <code>int *</code> (step = one <code>int</code>); <code>&amp;buf</code> is <code>int (*)[10]</code> (step = the whole array, 40 bytes).</li>
+      <li><strong>String literals are read-only.</strong> <code>char *s = "hello"; s[0] = 'H';</code> is undefined behavior. Use <code>const char *s = "hello";</code> or a mutable array <code>char s[] = "hello";</code>.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="const-pointers">
+    <h2><span class="sec-num">2.4</span> <code>const</code> and pointers: read it right-to-left</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#5cd58c"></span>const-pointers.c</div><pre><code>const int *p;         /* pointer to const int: *p read-only, p movable */
+int * const p;        /* const pointer to int: p fixed, *p writable */
+const int * const p;  /* both fixed */
+
+void print_buf(const uint8_t *buf, size_t len);  /* "I will not modify buf" */</code></pre></div>
+    <p>Rule: read the declaration right-to-left — <code>const</code> applies to what is on its <em>left</em> (or to the right if nothing is on the left). <code>const</code> on a function parameter is a promise to callers and a compiler-checked guard against accidental writes. It does not make the data immutable — another non-<code>const</code> pointer to the same memory can still change it.</p>
+  </section>
+
+  <section class="block" id="double-pointers">
+    <h2><span class="sec-num">2.5</span> Pointers to pointers: changing the caller’s pointer</h2>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#f2b345"></span>out-param.c</div><pre><code>/* A function gets a COPY of its arguments — including pointers.
+   To change the caller's pointer, pass a pointer TO the pointer. */
+bool alloc_buf(uint8_t **out, size_t n) {
+    *out = malloc(n);
+    return *out != NULL;
+}
+
+uint8_t *buf = NULL;
+if (!alloc_buf(&amp;buf, 64)) { return ERR_NOMEM; }
+free(buf); buf = NULL;</code></pre></div>
+    <ul>
+      <li><strong>One level per job:</strong> <code>int *</code> lets a function change an <code>int</code>; <code>int **</code> lets it change an <code>int *</code>. The same pattern appears in <code>main(int argc, char **argv)</code> (an array of strings) and in <code>char **</code> tables.</li>
+      <li><strong><code>void *</code> is the generic pointer.</strong> It converts to/from any object pointer implicitly, but you cannot dereference or do arithmetic on it — cast to a concrete type first: <code>uint8_t *bytes = data;</code></li>
+      <li><strong>Function pointers</strong> are covered in depth in Stage 8 (Interfaces &amp; Polymorphism) — the same idea, applied to behavior instead of data.</li>
+    </ul>
+    <div class="callout danger"><span class="co-icon">✖</span><p><strong>Never return a pointer to a local.</strong> <code>int *f(void) { int x = 5; return &amp;x; }</code> hands back an address whose stack frame is gone. The pointer dangles before the caller uses it. Return the value, take an out-pointer, or allocate — see Stage 3.</p></div>
+  </section>
+
+  <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
+</main></div>
+<footer class="site-footer"><p>C Visual Lab — interactive embedded C education</p></footer>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/deep-dive.js"></script>
+</body></html>

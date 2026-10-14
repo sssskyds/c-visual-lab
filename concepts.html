@@ -13,10 +13,10 @@
 <nav class="topnav" id="topnav" aria-label="Site navigation"></nav>
 <div class="layout"><aside class="sidebar" id="sidebar" aria-label="Lesson progress"></aside>
 <main id="main-content">
-  <div class="page-head"><div class="kicker">Stage 1</div><h1>Why Custom Data Types?</h1>
+  <div class="page-head"><div class="kicker">Stage 4</div><h1>Why Custom Data Types?</h1>
     <p class="lede">Raw integers and arrays can represent anything — but they tell you nothing about intent. Custom types add meaning, structure, and safety.</p></div>
   <section class="block" id="grouping">
-    <h2><span class="sec-num">1.1</span> The grouping problem</h2>
+    <h2><span class="sec-num">4.1</span> The grouping problem</h2>
     <div class="code-card bad"><div class="code-title"><span class="dot" style="background:#f4756c"></span>before — scattered raw values</div><pre><code>uint8_t  led_id     = 1;
 bool     led_on     = false;
 uint8_t  led_bright = 80;
@@ -35,7 +35,7 @@ LedState led = { .id=1, .on=false,
     <div id="grouping-sim"></div>
   </section>
   <section class="block" id="enum-state">
-    <h2><span class="sec-num">1.2</span> Enum: named states</h2>
+    <h2><span class="sec-num">4.2</span> Enum: named states</h2>
     <div class="code-card"><div class="code-title"><span class="dot" style="background:#ab8ff7"></span>sensor_state.c</div><pre><code>typedef enum {
     SENSOR_IDLE,
     SENSOR_MEASURING,
@@ -45,6 +45,29 @@ LedState led = { .id=1, .on=false,
 
 SensorState state = SENSOR_IDLE;</code></pre></div>
     <div id="enum-sim"></div>
+  </section>
+  <section class="block" id="correctness">
+    <h2><span class="sec-num">4.3</span> Types are a correctness tool, not decoration</h2>
+    <p>Grouping fields into a <code>struct</code> does more than tidy the code — it makes whole classes of mistakes <em>unrepresentable</em> or visible to the compiler:</p>
+    <ul>
+      <li><strong>Wrong-argument bugs:</strong> <code>set_led(color, id)</code> compiles silently when both are <code>uint32_t</code>. <code>set_led(LedColor, LedId)</code> with distinct types does not — or at least makes the swap obvious at the call site.</li>
+      <li><strong>Unit bugs:</strong> <code>Timestamp_ms</code> vs <code>Timestamp_us</code> (see Stage 5) stops you adding milliseconds to microseconds without converting. The Mars Climate Orbiter lesson, in miniature.</li>
+      <li><strong>Invalid states:</strong> an <code>enum</code> with four named states cannot hold “state 7”. A raw <code>uint8_t state</code> can — and will, the day a corrupted byte arrives.</li>
+    </ul>
+    <div class="callout warn"><span class="co-icon">⚠︎</span><p><strong>Honest limit:</strong> C’s type system is weak. <code>typedef</code> creates an <em>alias</em>, not a new type — <code>Timestamp_ms</code> and <code>uint32_t</code> are interchangeable to the compiler. Types help you and the reader; they do not enforce themselves the way Rust’s newtypes or Ada’s subtypes do. Treat them as documentation the compiler can partially check, not as a proof.</p></div>
+  </section>
+  <section class="block" id="representation">
+    <h2><span class="sec-num">4.4</span> Values vs representation: the same bits, different meaning</h2>
+    <p>The bit pattern <code>0x41</code> is simultaneously the character <code>'A'</code>, the number 65, and a bit mask with bits 0 and 6 set. The <em>type</em> decides the interpretation — which is why the same memory read through two different pointer types gives two different answers, and why casting a byte buffer to a struct is a portability bug (Stages 5–6).</p>
+    <div class="code-card"><div class="code-title"><span class="dot" style="background:#3fd4e5"></span>representation.c</div><pre><code>uint8_t raw = 0x41;
+char    c   = (char)raw;    /* 'A' — same bits, character meaning */
+int     n   = raw;          /* 65  — same bits, numeric meaning */
+bool    b   = raw != 0;     /* true — same bits, truth meaning */
+
+/* Endianness: the same 32-bit value, two byte orders on the wire. */
+uint32_t v = 0x01020304;    /* little-endian bytes: 04 03 02 01
+                               big-endian bytes:    01 02 03 04 */</code></pre></div>
+    <p>Keep this picture in mind for every later lesson: <strong>types are the lens; memory is just bytes.</strong></p>
   </section>
   <div class="complete-strip" data-complete-strip><div class="cs-msg"></div><button class="btn btn-primary"></button></div>
 </main></div>
